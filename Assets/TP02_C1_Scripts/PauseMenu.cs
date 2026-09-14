@@ -1,16 +1,18 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controla el Menú de Pausa durante una partida en curso.
+/// Gestiona la transición hacia submenús (Settings, Credits) y regreso correcto a la pausa.
+/// </summary>
 public class PauseMenu : MonoBehaviour
 {
-    // 1. Referencias a Paneles de UI
     [Header("Paneles de UI")]
     [SerializeField] private GameObject pauseMenuPanel;
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject creditsPanel;
     [SerializeField] private GameObject mainMenuPanel;
 
-    // 2. Referencias a Botones de Pausa
     [Header("Botones de Pausa")]
     [SerializeField] private Button continueButton;
     [SerializeField] private Button settingsButton;
@@ -29,32 +31,59 @@ public class PauseMenu : MonoBehaviour
         pauseCanvas = GetComponent<Canvas>();
     }
 
-    // 3. Inicialización y suscripción a eventos OnClick por código
     void Start()
     {
-        if (continueButton != null) continueButton.onClick.AddListener(Resume);
-        if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
-        if (creditsButton != null) creditsButton.onClick.AddListener(OpenCredits);
-        if (exitButton != null) exitButton.onClick.AddListener(ExitGame);
+        if (continueButton != null)
+        {
+            continueButton.onClick.RemoveListener(Resume);
+            continueButton.onClick.AddListener(Resume);
+        }
+        if (settingsButton != null)
+        {
+            settingsButton.onClick.RemoveListener(OpenSettings);
+            settingsButton.onClick.AddListener(OpenSettings);
+        }
+        if (creditsButton != null)
+        {
+            creditsButton.onClick.RemoveListener(OpenCredits);
+            creditsButton.onClick.AddListener(OpenCredits);
+        }
+        if (exitButton != null)
+        {
+            exitButton.onClick.RemoveListener(ExitGame);
+            exitButton.onClick.AddListener(ExitGame);
+        }
 
-        if (settingsBackButton != null) settingsBackButton.onClick.AddListener(BackToPauseMenu);
-        if (creditsBackButton != null) creditsBackButton.onClick.AddListener(BackToPauseMenu);
+        if (settingsBackButton != null)
+        {
+            settingsBackButton.onClick.RemoveListener(OnBackFromSubmenu);
+            settingsBackButton.onClick.AddListener(OnBackFromSubmenu);
+        }
+        if (creditsBackButton != null)
+        {
+            creditsBackButton.onClick.RemoveListener(OnBackFromSubmenu);
+            creditsBackButton.onClick.AddListener(OnBackFromSubmenu);
+        }
 
         Resume();
     }
 
-    // 4. Detección de tecla Escape
     void Update()
     {
-        // Si el menú principal está en pantalla, no permitimos pausar
-        if (mainMenuPanel != null && mainMenuPanel.activeInHierarchy)
+        // Si el menú principal está en pantalla o el juego aún no ha iniciado, no permitimos pausar
+        if (!MainMenu.IsGamePlaying || (mainMenuPanel != null && mainMenuPanel.activeInHierarchy))
         {
             return;
         }
 
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (isPaused)
+            // Si está dentro de Settings o Credits durante la pausa, Escape regresa al menú de pausa
+            if (isPaused && ((settingsPanel != null && settingsPanel.activeInHierarchy) || (creditsPanel != null && creditsPanel.activeInHierarchy)))
+            {
+                BackToPauseMenu();
+            }
+            else if (isPaused)
             {
                 Resume();
             }
@@ -65,7 +94,9 @@ public class PauseMenu : MonoBehaviour
         }
     }
 
-    // 5. Lógica Botón Continue
+    /// <summary>
+    /// Reanuda la partida y oculta todos los paneles de pausa/opciones.
+    /// </summary>
     public void Resume()
     {
         SetPauseUIVisible(false);
@@ -76,7 +107,9 @@ public class PauseMenu : MonoBehaviour
         isPaused = false;
     }
 
-    // 6. Lógica de Pausa
+    /// <summary>
+    /// Congela el juego y muestra la interfaz de pausa.
+    /// </summary>
     public void Pause()
     {
         SetPauseUIVisible(true);
@@ -87,7 +120,6 @@ public class PauseMenu : MonoBehaviour
         isPaused = true;
     }
 
-    // Activa o desactiva la visibilidad del menú de pausa sin apagar el script
     private void SetPauseUIVisible(bool visible)
     {
         if (pauseCanvas != null)
@@ -107,7 +139,6 @@ public class PauseMenu : MonoBehaviour
         }
     }
 
-    // 7. Lógica Botón Settings
     public void OpenSettings()
     {
         SetPauseUIVisible(false);
@@ -115,7 +146,6 @@ public class PauseMenu : MonoBehaviour
         if (settingsPanel != null) settingsPanel.SetActive(true);
     }
 
-    // 8. Lógica Botón Credits 
     public void OpenCredits()
     {
         SetPauseUIVisible(false);
@@ -123,7 +153,9 @@ public class PauseMenu : MonoBehaviour
         if (creditsPanel != null) creditsPanel.SetActive(true);
     }
 
-    // 9. Lógica Botón Back
+    /// <summary>
+    /// Regresa a la pantalla de Pausa desde un submenú durante una partida activa.
+    /// </summary>
     public void BackToPauseMenu()
     {
         if (settingsPanel != null) settingsPanel.SetActive(false);
@@ -131,7 +163,14 @@ public class PauseMenu : MonoBehaviour
         SetPauseUIVisible(true);
     }
 
-    // 10. Lógica Botón Exit
+    private void OnBackFromSubmenu()
+    {
+        if (MainMenu.IsGamePlaying)
+        {
+            BackToPauseMenu();
+        }
+    }
+
     public void ExitGame()
     {
         #if UNITY_EDITOR

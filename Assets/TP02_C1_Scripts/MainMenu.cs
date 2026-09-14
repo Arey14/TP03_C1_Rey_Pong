@@ -1,15 +1,19 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controla la navegación del Menú Principal y el inicio de la partida.
+/// Mantiene el estado global de si la partida está en curso.
+/// </summary>
 public class MainMenu : MonoBehaviour
 {
-    // 1. Referencias a Paneles del Menú
+    public static bool IsGamePlaying { get; private set; } = false;
+
     [Header("Paneles del Menú")]
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject creditsPanel;
 
-    // 2. Referencias a Botones
     [Header("Botones del Menú Principal")]
     [SerializeField] private Button playButton;
     [SerializeField] private Button settingsButton;
@@ -20,31 +24,72 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private Button settingsBackButton;
     [SerializeField] private Button creditsBackButton;
 
-    // 3. Control inicial y suscripción a eventos OnClick por código
+    [Header("Referencia a la Pelota")]
+    [SerializeField] private BallController ball;
+
     void Start()
     {
-        if (playButton != null) playButton.onClick.AddListener(PlayGame);
-        if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
-        if (creditsButton != null) creditsButton.onClick.AddListener(OpenCredits);
-        if (exitButton != null) exitButton.onClick.AddListener(ExitGame);
+        if (ball == null)
+        {
+            ball = FindFirstObjectByType<BallController>();
+        }
 
-        if (settingsBackButton != null) settingsBackButton.onClick.AddListener(ShowMainMenu);
-        if (creditsBackButton != null) creditsBackButton.onClick.AddListener(ShowMainMenu);
+        if (playButton != null)
+        {
+            playButton.onClick.RemoveListener(PlayGame);
+            playButton.onClick.AddListener(PlayGame);
+        }
+        if (settingsButton != null)
+        {
+            settingsButton.onClick.RemoveListener(OpenSettings);
+            settingsButton.onClick.AddListener(OpenSettings);
+        }
+        if (creditsButton != null)
+        {
+            creditsButton.onClick.RemoveListener(OpenCredits);
+            creditsButton.onClick.AddListener(OpenCredits);
+        }
+        if (exitButton != null)
+        {
+            exitButton.onClick.RemoveListener(ExitGame);
+            exitButton.onClick.AddListener(ExitGame);
+        }
+
+        // Manejador compartido de botones Back según el estado del juego
+        if (settingsBackButton != null)
+        {
+            settingsBackButton.onClick.RemoveListener(OnBackFromSubmenu);
+            settingsBackButton.onClick.AddListener(OnBackFromSubmenu);
+        }
+        if (creditsBackButton != null)
+        {
+            creditsBackButton.onClick.RemoveListener(OnBackFromSubmenu);
+            creditsBackButton.onClick.AddListener(OnBackFromSubmenu);
+        }
 
         ShowMainMenu();
     }
 
-    // 4. Lógica Botón Play
+    /// <summary>
+    /// Lógica Botón Play: Inicia la partida y cambia el estado global a en juego.
+    /// </summary>
     public void PlayGame()
     {
+        IsGamePlaying = true;
+
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
         if (creditsPanel != null) creditsPanel.SetActive(false);
 
         Time.timeScale = 1f; 
+
+        // Lanza la pelota con su retraso inicial configurado
+        if (ball != null)
+        {
+            ball.ResetBall();
+        }
     }
 
-    // 5. Lógica Botón Settings
     public void OpenSettings()
     {
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
@@ -52,7 +97,6 @@ public class MainMenu : MonoBehaviour
         if (settingsPanel != null) settingsPanel.SetActive(true);
     }
 
-    // 6. Lógica Botón Credits
     public void OpenCredits()
     {
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
@@ -60,15 +104,31 @@ public class MainMenu : MonoBehaviour
         if (creditsPanel != null) creditsPanel.SetActive(true);
     }
 
-    // 7. Lógica Botón Back
+    /// <summary>
+    /// Muestra el menú principal y detiene el tiempo.
+    /// </summary>
     public void ShowMainMenu()
     {
+        IsGamePlaying = false;
+
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (settingsPanel != null) settingsPanel.SetActive(false);
         if (creditsPanel != null) creditsPanel.SetActive(false);
+
+        Time.timeScale = 0f;
     }
 
-    // 8. Lógica Botón Exit
+    /// <summary>
+    /// Maneja el regreso desde Settings o Credits hacia el Menú Principal si no se está jugando.
+    /// </summary>
+    public void OnBackFromSubmenu()
+    {
+        if (!IsGamePlaying)
+        {
+            ShowMainMenu();
+        }
+    }
+
     public void ExitGame()
     {
         #if UNITY_EDITOR
